@@ -13,13 +13,15 @@ class DTXAction {
     _apiBridge.leaveAction(this);
   }
 
+  int reportValue(String key, value) {
+    _apiBridge.reportValue(this, key, value);
+  }
+
 //  int reportEvent(String var1);
 //
-//  int reportValue(String var1, int var2);
-//
-//  int reportValue(String var1, double var2);
-//
-//  int reportValue(String var1, String var2);
+
+
+
 //
 //  int reportError(String var1, int var2);
 //

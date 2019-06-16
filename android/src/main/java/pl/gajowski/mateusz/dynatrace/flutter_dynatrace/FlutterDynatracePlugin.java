@@ -52,7 +52,7 @@ public class FlutterDynatracePlugin implements MethodCallHandler {
                 break;
             }
             case "DYNATRACE_enterAction": {
-                final String id = saveDynatraceObject(enterAction(String.valueOf(call.arguments)));
+                final String id = saveDynatraceObject(enterAction(String.valueOf(call.argument("action")), asString(call.argument("parentActionId"))));
                 result.success(id);
                 break;
             }
@@ -107,8 +107,13 @@ public class FlutterDynatracePlugin implements MethodCallHandler {
         }
     }
 
-    private DTXAction enterAction(String action) {
-        return Dynatrace.enterAction(action);
+    private DTXAction enterAction(String action, String parentActionId) {
+        if (parentActionId == null) {
+            return Dynatrace.enterAction(action);
+        } else {
+            final DTXAction parentAction = getAction(parentActionId);
+            return Dynatrace.enterAction(action, parentAction);
+        }
     }
 
     private String saveDynatraceObject(Object object) {
@@ -141,5 +146,9 @@ public class FlutterDynatracePlugin implements MethodCallHandler {
 
     private String generateId() {
         return UUID.randomUUID().toString();
+    }
+
+    private String asString(Object object) {
+        return object == null ? null : String.valueOf(object);
     }
 }

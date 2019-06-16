@@ -1,56 +1,42 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import 'package:flutter_dynatrace/flutter_dynatrace.dart';
-import 'package:flutter_dynatrace/monitored_http_client.dart';
+import 'package:flutter_dynatrace/monitoring/monitored_http_client.dart';
+import 'package:flutter_dynatrace/monitoring/monitored_widget.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  ///Initialize Dynatrace. Put here your applicationId and beaconUrl
+  FlutterDynatrace.getInstance().configure(Config(
+      applicationId: "applicationId",
+      beaconUrl: "beaconUrl"));
+
+  runApp(MaterialApp(
+    home: MyApp(),
+  ));
+}
 
 class MyApp extends StatefulWidget {
   @override
   _MyAppState createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with MonitoredWidget {
   String requestText = "Loading...";
 
-  ///Initialize Dynatrace. Put here your applicationId and beaconUrl
-  Future<void> initializeDynatrace() {
-    return FlutterDynatrace.getInstance().startup(
-        "applicationId",
-        "beaconUrl");
+  void initializeDynatrace() {
+    window.onReportTimings = (List<FrameTiming> timings) {
+      print(timings.toString());
+    };
   }
 
   @override
   void initState() {
     super.initState();
-    initializeDynatrace().whenComplete(() {
-      testAction();
-      testWebRequest(
-          "https://samples.openweathermap.org/data/2.5/weather?q=London,uk&appid=b6907d289e10d714a6e88b30761fae22");
-    });
-  }
-
-  Future<void> testAction() async {
-    var dtx = await FlutterDynatrace.getInstance().enterAction("test");
-    await Future.delayed(Duration(seconds: 2));
-    dtx.leaveAction();
-    return;
-  }
-
-  Future<void> testWebRequest(String url) async {
-    setState(() {
-      requestText = "Loading...";
-    });
-
-    var monitoredHttpClient =
-        MonitoredHttpClient(http.Client(), FlutterDynatrace.getInstance());
-    await monitoredHttpClient.get(url, headers: {MonitoredHttpClient.ACTION_HEADER_NAME: "TEST_API_CALL"});
-    setState(() {
-      requestText = "Request DONE. Click to do it again!";
-    });
-    return;
+    testAction();
   }
 
   @override
@@ -87,5 +73,41 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
     );
+  }
+
+  Future<void> testAction() async {
+    var dtx = await FlutterDynatrace.getInstance().enterAction("test");
+    await Future.delayed(Duration(seconds: 2));
+    dtx.leaveAction();
+    return;
+  }
+
+  Future<void> testWebRequest(String url) async {
+    print('testWebRequest');
+    setState(() {
+      requestText = "Loading...";
+    });
+
+    var monitoredHttpClient = MonitoredHttpClient(delegate: http.Client());
+    await monitoredHttpClient.get(url, headers: {
+      MonitoredHttpClient.ACTION_HEADER_NAME: "TEST_API_CALL",
+      MonitoredHttpClient.PARENT_ACTION_HEADER_NAME: getWidgetActionId()
+    });
+    setState(() {
+      requestText = "Request DONE. Click to do it again!";
+    });
+    callOnDataInitialized();
+    return;
+  }
+
+  @override
+  String actionName() {
+    return "DYNATRACE_MAIN_PAGE";
+  }
+
+  @override
+  void onActionCreated() {
+    testWebRequest(
+        "https://samples.openweathermap.org/data/2.5/weather?q=London,uk&appid=b6907d289e10d714a6e88b30761fae22");
   }
 }

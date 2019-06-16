@@ -22,9 +22,10 @@ class DynatraceApiBridge {
         {"applicationId": applicationId, "beaconUrl": beaconUrl});
   }
 
-  Future<DTXAction> enterAction(String action) async {
-    final String id =
-        await _channel.invokeMethod("${METHOD_PREFIX}_enterAction", action);
+  Future<DTXAction> enterAction(String action, {String parentActionId}) async {
+    final String id = await _channel.invokeMethod(
+        "${METHOD_PREFIX}_enterAction",
+        {"action": action, "parentActionId": parentActionId});
     return DTXAction(id, _dtxBridge);
   }
 
@@ -56,6 +57,16 @@ class DTXActionBridge {
   Future<String> getRequestTag(DTXAction dtxAction) async {
     return await _channel.invokeMethod(
         "${METHOD_PREFIX}_getRequestTag", dtxAction.id);
+  }
+
+  Future<String> reportValue(DTXAction dtxAction, String key, value) async {
+    if (value is int || value is double || value is String) {
+      return await _channel.invokeMethod("${METHOD_PREFIX}_reportValue",
+          {"id": dtxAction.id, "key": key, "value": value});
+    } else {
+      throw new ArgumentError.value(
+          value, "value", "should be type of int, double or string");
+    }
   }
 }
 
